@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика — 5 Букв{% endblock %}
+
+{% block body %}
+<main class="container" role="main" aria-label="Таблица лидеров">
+  <h1>Рейтинг игроков</h1>
+
+  <nav class="stats-tabs" role="tablist" aria-label="Период рейтинга">
+    <a href="{{ url_for('statistics', period='day') }}" class="tab {% if period == 'day' %}active{% endif %}" role="tab" aria-selected="{{ 'true' if period == 'day' else 'false' }}">Топ дня</a>
+    <a href="{{ url_for('statistics', period='week') }}" class="tab {% if period == 'week' %}active{% endif %}" role="tab" aria-selected="{{ 'true' if period == 'week' else 'false' }}">Топ недели</a>
+    <a href="{{ url_for('statistics', period='month') }}" class="tab {% if period == 'month' %}active{% endif %}" role="tab" aria-selected="{{ 'true' if period == 'month' else 'false' }}">Топ месяца</a>
+  </nav>
+
+  <table class="leaderboard" role="table" aria-label="Таблица лидеров">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Имя пользователя</th>
+        <th scope="col">Решено слов</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr {% if user.id == current_user.id %}class="current-user"{% endif %}>
+        <td>{{ loop.index }}</td>
+        <td>{{ user.username }}</td>
+        <td>
+          {% if period == 'day' %}
+            {{ user.solved_day }}
+          {% elif period == 'week' %}
+            {{ user.solved_week }}
+          {% else %}
+            {{ user.solved_month }}
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3">Нет данных</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</main>
+{% endblock %}

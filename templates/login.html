@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Вход — 5 Букв{% endblock %}
+
+{% block body %}
+<main class="container" role="main" aria-label="Вход в игру">
+  <h2>Вход</h2>
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+  <form method="POST" action="{{ url_for('login') }}">
+    <input type="text" name="username" placeholder="Имя пользователя" required />
+    <input type="password" name="password" placeholder="Пароль" required />
+    <button type="submit" class="btn">Войти</button>
+  </form>
+  <p style="margin-top: 16px; text-align: center;">
+    Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрироваться</a>
+  </p>
+</main>
+{% endblock %}

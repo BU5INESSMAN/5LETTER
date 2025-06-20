@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль — 5 Букв{% endblock %}
+
+{% block body %}
+<main class="container" role="main" aria-label="Профиль пользователя">
+  <h1>Профиль</h1>
+  <p>Имя пользователя: <strong>{{ user.username }}</strong></p>
+  <p>Решено слов: <strong>{{ user.solved_count }}</strong></p>
+  <p><a href="{{ url_for('home') }}" class="btn">Вернуться к игре</a></p>
+</main>
+{% endblock %}

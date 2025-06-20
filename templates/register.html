@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация — 5 Букв{% endblock %}
+
+{% block body %}
+<main class="container" role="main" aria-label="Регистрация в игре">
+  <h2>Регистрация</h2>
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+  <form method="POST" action="{{ url_for('register') }}">
+    <input type="text" name="username" placeholder="Имя пользователя" required />
+    <input type="password" name="password" placeholder="Пароль" required />
+    <button type="submit" class="btn">Зарегистрироваться</button>
+  </form>
+  <p style="margin-top: 16px; text-align: center;">
+    Уже есть аккаунт? <a href="{{ url_for('login') }}">Войти</a>
+  </p>
+</main>
+{% endblock %}

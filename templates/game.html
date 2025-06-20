@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Игра — 5 Букв{% endblock %}
+
+{% block body %}
+<div class="page-container">
+  <aside class="rules-container" aria-label="Правила игры">
+    <h2>Правила игры</h2>
+    <p>Загадано слово из 5 букв. Введите слово и нажмите "Проверить слово".</p>
+    <p>Зеленый цвет — буква на правильном месте.</p>
+    <p>Желтый цвет — буква есть в слове, но на другом месте.</p>
+    <p>Серый цвет — буквы нет в слове.</p>
+    <p>У вас 6 попыток, чтобы отгадать слово.</p>
+  </aside>
+
+  <main class="container game-container" role="main" aria-label="Игра 5 Букв">
+    <h1>5 Букв</h1>
+
+    <section aria-label="Панель пользователя" class="user-panel">
+      <p>Пользователь: <strong>{{ current_user.username }}</strong></p>
+      <p>Решено слов: <strong id="solved-count">{{ current_user.solved_count }}</strong></p>
+    </section>
+
+    <section id="board" aria-label="Игровое поле"></section>
+
+    <section id="keyboard" aria-label="Виртуальная клавиатура"></section>
+
+    <p id="message" role="alert" aria-live="polite"></p>
+
+    <button id="submit-btn" type="button" class="btn">Проверить слово</button>
+  </main>
+
+  <aside class="leaderboard-container" aria-label="Рейтинг игроков за всё время">
+    <h2>Рейтинг за всё время</h2>
+    <table class="leaderboard" role="table" aria-label="Таблица лидеров">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Имя пользователя</th>
+          <th scope="col">Решено слов</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in top_users %}
+        <tr {% if user.id == current_user.id %}class="current-user"{% endif %}>
+          <td>{{ loop.index }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.solved_count }}</td>
+        </tr>
+        {% endfor %}
+        {% if user_rank > 10 %}
+        <tr class="current-user">
+          <td>{{ user_rank }}</td>
+          <td>{{ current_user.username }}</td>
+          <td>{{ current_user.solved_count }}</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+{% endblock %}
