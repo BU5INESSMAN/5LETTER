@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Изменить никнейм{% endblock %}
+
+{% block body %}
+<div class="page-container">
+<main class="container" role="main" aria-label="Изменение никнейма">
+  <h1>Изменить никнейм</h1>
+
+  <form method="POST" action="{{ url_for('edit_nickname') }}">
+    <label for="nickname">Новый никнейм:</label>
+    <input type="text" name="nickname" id="nickname" value="{{ current_user.username }}" required minlength="3" maxlength="50" />
+    <button type="submit" class="btn">Сохранить</button>
+  </form>
+
+  <p><a href="{{ url_for('profile') }}">← Вернуться в профиль</a></p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+</main>
+</div>
+{% endblock %}

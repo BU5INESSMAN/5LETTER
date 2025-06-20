@@ -3,6 +3,7 @@
 {% block title %}Статистика — 5 Букв{% endblock %}
 
 {% block body %}
+<div class="page-container">
 <main class="container" role="main" aria-label="Таблица лидеров">
   <h1>Рейтинг игроков</h1>
 
@@ -24,7 +25,7 @@
       {% for user in users %}
       <tr {% if user.id == current_user.id %}class="current-user"{% endif %}>
         <td>{{ loop.index }}</td>
-        <td>{{ user.username }}</td>
+        <td><a href="{{ url_for('profile_view', user_id=user.id) }}">{{ user.username }}</a></td>
         <td>
           {% if period == 'day' %}
             {{ user.solved_day }}
@@ -40,5 +41,6 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 </main>
 {% endblock %}

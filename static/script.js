@@ -195,7 +195,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       message.textContent = 'Ошибка соединения с сервером';
     }
+    
   }
+  
 
   /**
    * Обновляет цвета клавиш виртуальной клавиатуры в зависимости от результата

@@ -1,12 +1,128 @@
 {% extends "base.html" %}
 
-{% block title %}Профиль — 5 Букв{% endblock %}
+{% block title %}Профиль{% endblock %}
 
 {% block body %}
+<div class="page-container">
 <main class="container" role="main" aria-label="Профиль пользователя">
-  <h1>Профиль</h1>
-  <p>Имя пользователя: <strong>{{ user.username }}</strong></p>
-  <p>Решено слов: <strong>{{ user.solved_count }}</strong></p>
-  <p><a href="{{ url_for('home') }}" class="btn">Вернуться к игре</a></p>
+  <h1>{{ user.username }}</h1>
+
+  <div class="profile-photo">
+    {% if user.avatar_url %}
+      <img src="{{ url_for('static', filename='avatars/' + user.avatar_url) }}" alt="Аватар {{ user.username }}" width="150" height="150" />
+    {% else %}
+      <img src="{{ url_for('static', filename='default_avatar.png') }}" alt="Аватар по умолчанию" width="150" height="150" />
+    {% endif %}
+  </div>
+
+<p><strong>Решено слов:</strong> {{ user.solved_count }}</p>
+<p><strong>Количество ошибок:</strong> {{ user.total_errors }}</p>
+
+
+  {% if editable %}
+  <hr />
+  <h2>Управление профилем</h2>
+
+  <p>
+    <a href="{{ url_for('edit_nickname') }}" class="btn">Изменить никнейм</a>
+    <a href="{{ url_for('edit_password') }}" class="btn">Изменить пароль</a>
+  </p>
+
+  <h2>Изменить фотографию</h2>
+  <form id="avatar-form" method="POST" action="{{ url_for('edit_avatar') }}" enctype="multipart/form-data">
+    <div id="drop-area" tabindex="0" aria-label="Перетащите сюда файл для загрузки аватара или нажмите для выбора" role="button">
+      <p>Перетащите файл сюда или кликните для выбора</p>
+    </div>
+    <input type="file" name="avatar" id="fileElem" accept="image/*" style="display:none" />
+    <button type="submit" class="btn" id="upload-btn" disabled>Загрузить</button>
+  </form>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+</div>
 </main>
+
+<script>
+  // Drag & Drop скрипт (как в предыдущем ответе)
+  const dropArea = document.getElementById('drop-area');
+  const fileInput = document.getElementById('fileElem');
+  const uploadBtn = document.getElementById('upload-btn');
+
+  dropArea.addEventListener('click', () => fileInput.click());
+
+  dropArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropArea.classList.add('highlight');
+  });
+
+  dropArea.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropArea.classList.remove('highlight');
+  });
+
+  dropArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropArea.classList.remove('highlight');
+
+    const dt = e.dataTransfer;
+    if (dt.files.length) {
+      fileInput.files = dt.files;
+      uploadBtn.disabled = false;
+      dropArea.querySelector('p').textContent = dt.files[0].name;
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      uploadBtn.disabled = false;
+      dropArea.querySelector('p').textContent = fileInput.files[0].name;
+    } else {
+      uploadBtn.disabled = true;
+      dropArea.querySelector('p').textContent = 'Перетащите файл сюда или кликните для выбора';
+    }
+  });
+
+  dropArea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+</script>
+<style>
+  #drop-area {
+    border: 2px dashed #0071e3;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    color: #0071e3;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s, border-color 0.2s;
+    outline: none;
+  }
+
+  #drop-area.highlight {
+    background-color: #e6f0ff;
+    border-color: #005bb5;
+  }
+
+  #drop-area p {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  #upload-btn:disabled {
+    background-color: #a8a9ab;
+    cursor: not-allowed;
+  }
+</style>
 {% endblock %}

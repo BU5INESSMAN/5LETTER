@@ -3,6 +3,7 @@
 {% block title %}Вход — 5 Букв{% endblock %}
 
 {% block body %}
+<div class="page-container">
 <main class="container" role="main" aria-label="Вход в игру">
   <h2>Вход</h2>
   {% if error %}
@@ -17,4 +18,5 @@
     Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрироваться</a>
   </p>
 </main>
+</div>
 {% endblock %}

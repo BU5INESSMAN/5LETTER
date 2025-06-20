@@ -1,7 +1,7 @@
 /* --- Общие стили --- */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: linear-gradient(135deg, #f5f6fa 0%, #e5e9f2 100%);
+  background-image: url("back.png");
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -12,7 +12,6 @@ body {
 .container {
   max-width: 560px;
   width: 95vw;
-  margin: 24px auto;
   background: #fff;
   border-radius: 22px;
   box-shadow: 0 6px 32px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.03);
@@ -21,6 +20,7 @@ body {
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
+  justify-content: center;
 }
 
 h1, h2 {
@@ -281,14 +281,6 @@ input[type="text"]:focus, input[type="password"]:focus {
   margin: 0 12px;
 }
 
-.page-container {
-  display: flex;
-  gap: 32px;
-  max-width: 1200px;
-  margin: 0 auto 60px auto;
-  padding: 0 24px;
-  box-sizing: border-box;
-}
 
 .game-container {
   flex: 1 1 0;
@@ -352,53 +344,57 @@ input[type="text"]:focus, input[type="password"]:focus {
 /* Контейнер всей страницы с тремя колонками */
 .page-container {
   display: flex;
-  justify-content: center; /* Центрируем горизонтально */
-  gap: 40px; /* Отступы между колонками */
-  padding: 0 24px;
+  justify-content: center; 
   box-sizing: border-box;
   width: 1920px;
-  align-items: flex-start; /* Выравниваем по верхнему краю */
+  align-items: start; 
   min-height: 100vh;
+  margin: 25px auto 60px auto;
+  gap: 25px;
 }
 
 /* Блок с правилами слева */
 .rules-container {
-  width: 220px;
+
   background: #fff;
   border-radius: 22px;
   box-shadow: 0 6px 32px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.03);
   padding: 24px;
   box-sizing: border-box;
-  margin: 24px auto;
   font-size: 16px;
   color: #333;
   line-height: 1.5;
   user-select: none;
+  flex: 1;
+}
+
+.rules-container>h2,p {
+  text-align: center;
 }
 
 /* Центральный блок с игрой */
 .game-container {
-  flex: 1 1 0;
-  max-width: 700px;
+
+
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: center; /* Вертикальное центрирование содержимого */
   overflow-y: auto; /* Если контента много — прокрутка */
+  flex: 2;
 }
 
 /* Блок рейтинга справа */
 .leaderboard-container {
-  width: 320px;
+
   background: #fff;
   border-radius: 22px;
   box-shadow: 0 6px 32px rgba(0,0,0,0.08), 0 1.5px 4px rgba(0,0,0,0.03);
   padding: 24px;
   box-sizing: border-box;
-  /* Отступ сверху равен верхнему отступу game-container (24px) */
-  margin-top: 24px;
   max-height: calc(100vh - 24px); /* Чтобы не выходил за экран */
   overflow-y: auto;
+  flex: 1;
 }
 
 /* Заголовок рейтинга */
@@ -452,3 +448,64 @@ input[type="text"]:focus, input[type="password"]:focus {
   }
 }
 
+
+
+.profile-photo img {
+  border-radius: 50%;
+  border: 2px solid #0071e3;
+  object-fit: cover;
+}
+
+.flashes {
+  list-style: none;
+  padding: 0;
+  margin-top: 16px;
+}
+
+.flashes li {
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.flashes li.error {
+  background-color: #ffe6e6;
+  color: #d93025;
+}
+
+.flashes li.success {
+  background-color: #e6f4ea;
+  color: #188038;
+}
+
+a {
+  color: #0071e3;
+  text-decoration: none;
+}
+
+a:hover, a:focus {
+  text-decoration: underline;
+}
+
+.game-container.victory {
+  background-color: #d4edda; /* светло-зелёный фон */
+  border-radius: 16px;
+  transition: background-color 0.5s ease;
+  position: relative;
+  padding-top: 80px; /* чтобы место для сообщения сверху */
+}
+
+.victory-message {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 48px;
+  font-weight: 900;
+  color: #155724; /* тёмно-зелёный */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+  user-select: none;
+  pointer-events: none;
+  z-index: 10;
+}

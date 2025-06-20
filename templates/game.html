@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 
-{% block title %}Игра — 5 Букв{% endblock %}
 
 {% block body %}
 <div class="page-container">
@@ -13,13 +12,12 @@
     <p>У вас 6 попыток, чтобы отгадать слово.</p>
   </aside>
 
-  <main class="container game-container" role="main" aria-label="Игра 5 Букв">
-    <h1>5 Букв</h1>
+  <main class="container game-container" role="main" aria-label="Игра 5 Букв">  
 
-    <section aria-label="Панель пользователя" class="user-panel">
-      <p>Пользователь: <strong>{{ current_user.username }}</strong></p>
-      <p>Решено слов: <strong id="solved-count">{{ current_user.solved_count }}</strong></p>
-    </section>
+    <div id="victory-message" class="victory-message" aria-live="polite" style="display:none;">
+    ПОБЕДА!
+    </div>
+
 
     <section id="board" aria-label="Игровое поле"></section>
 
@@ -44,7 +42,7 @@
         {% for user in top_users %}
         <tr {% if user.id == current_user.id %}class="current-user"{% endif %}>
           <td>{{ loop.index }}</td>
-          <td>{{ user.username }}</td>
+          <td><a href="{{ url_for('profile_view', user_id=user.id) }}">{{ user.username }}</a></td>
           <td>{{ user.solved_count }}</td>
         </tr>
         {% endfor %}
