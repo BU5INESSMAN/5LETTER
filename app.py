@@ -6,6 +6,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import random
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -38,6 +39,9 @@ class User(UserMixin, db.Model):
 
     avatar_url = db.Column(db.String(255), nullable=True)
 
+    coin_balance = db.Column(db.Integer, default=0)
+    win_streak = db.Column(db.Integer, default=0)
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
@@ -54,6 +58,21 @@ class User(UserMixin, db.Model):
             self.solved_month = 0
         self.stats_updated_at = now
 
+class Achievement(db.Model):
+    __tablename__ = 'achievement'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # solved_count, repeat_guess, first_try...
+    threshold = db.Column(db.Integer, nullable=False)
+
+class UserAchievement(db.Model):
+    __tablename__ = 'user_achievement'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'), nullable=False)
+    achieved_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -66,6 +85,44 @@ with open('keys.txt', encoding='utf-8') as f:
 
 def choose_word():
     return random.choice(key_words)
+
+def init_achievements():
+    achievements = [
+        # solved_count
+        {"name": "Новичок", "description": "Решить 5 слов", "type": "solved_count", "threshold": 5},
+        {"name": "Продвинутый", "description": "Решить 50 слов", "type": "solved_count", "threshold": 50},
+        {"name": "Мастер", "description": "Решить 100 слов", "type": "solved_count", "threshold": 100},
+        # repeat_guess
+        {"name": "Упрямец", "description": "Ввести в одной игре 6 одинаковых слов", "type": "repeat_guess", "threshold": 6},
+        # first_try
+        {"name": "Снайпер", "description": "Решить слово с первой попытки", "type": "first_try", "threshold": 1},
+    ]
+    for ach in achievements:
+        exists = Achievement.query.filter_by(name=ach["name"]).first()
+        if not exists:
+            db.session.add(Achievement(**ach))
+    db.session.commit()
+
+def check_achievements(user, game_context=None):
+    achievements = Achievement.query.all()
+    user_achievements = {ua.achievement_id for ua in UserAchievement.query.filter_by(user_id=user.id).all()}
+
+    for ach in achievements:
+        if ach.id in user_achievements:
+            continue
+        if ach.type == 'solved_count' and user.solved_count >= ach.threshold:
+            db.session.add(UserAchievement(user_id=user.id, achievement_id=ach.id))
+        elif ach.type == 'repeat_guess' and game_context and game_context.get('repeat_guess', 0) >= ach.threshold:
+            db.session.add(UserAchievement(user_id=user.id, achievement_id=ach.id))
+        elif ach.type == 'first_try' and game_context and game_context.get('first_try', False):
+            db.session.add(UserAchievement(user_id=user.id, achievement_id=ach.id))
+    db.session.commit()
+
+@app.context_processor
+def inject_balance():
+    if current_user.is_authenticated:
+        return {'coin_balance': current_user.coin_balance}
+    return {'coin_balance': None}
 
 @app.route('/')
 @login_required
@@ -98,14 +155,44 @@ def statistics():
 @app.route('/profile')
 @login_required
 def profile():
-    return render_template('profile.html', user=current_user, editable=True)
+    user = current_user
+    all_achievements = Achievement.query.all()
+    user_achievements = UserAchievement.query.filter_by(user_id=user.id).all()
+    user_achievement_ids = {ua.achievement_id for ua in user_achievements}
+    user_achievement_dates = {ua.achievement_id: ua.achieved_at for ua in user_achievements}
+    return render_template(
+        'profile.html',
+        user=user,
+        editable=True,
+        all_achievements=all_achievements,
+        user_achievement_ids=user_achievement_ids,
+        user_achievement_dates=user_achievement_dates
+    )
 
 @app.route('/profile/<int:user_id>')
 @login_required
 def profile_view(user_id):
     user = User.query.get_or_404(user_id)
     editable = (user.id == current_user.id)
-    return render_template('profile.html', user=user, editable=editable)
+
+    # Получаем все достижения
+    all_achievements = Achievement.query.all()
+
+    # Получаем достижения данного пользователя
+    user_achievements = UserAchievement.query.filter_by(user_id=user.id).all()
+
+    # Формируем множества для удобства в шаблоне
+    user_achievement_ids = {ua.achievement_id for ua in user_achievements}
+    user_achievement_dates = {ua.achievement_id: ua.achieved_at for ua in user_achievements}
+
+    return render_template(
+        'profile.html',
+        user=user,
+        editable=editable,
+        all_achievements=all_achievements,
+        user_achievement_ids=user_achievement_ids,
+        user_achievement_dates=user_achievement_dates
+    )
 
 
 @app.route('/profile/edit_avatar', methods=['POST'])
@@ -168,16 +255,19 @@ def check():
 
     session['attempts'] += 1
 
+    # Для repeat_guess
+    if 'guesses' not in session:
+        session['guesses'] = []
+    session['guesses'].append(guess)
+
     result = [None]*5
     target_letters = list(target)
 
-    # Проверяем буквы на правильность позиции (зелёные)
     for i in range(5):
         if guess[i] == target[i]:
             result[i] = 'green'
             target_letters[i] = None
 
-    # Проверяем буквы на наличие в слове (жёлтые и серые)
     for i in range(5):
         if result[i] is None:
             if guess[i] in target_letters:
@@ -188,28 +278,126 @@ def check():
 
     solved = all(color == 'green' for color in result)
 
+    game_context = {}
+
     if solved:
         current_user.solved_count = (current_user.solved_count or 0) + 1
         current_user.update_stats()
         current_user.solved_day = (current_user.solved_day or 0) + 1
         current_user.solved_week = (current_user.solved_week or 0) + 1
         current_user.solved_month = (current_user.solved_month or 0) + 1
+
+        # Начисляем монетки
+        current_user.coin_balance = (current_user.coin_balance or 0) + 10
+
+        # Увеличиваем серию
+        current_user.win_streak = (current_user.win_streak or 0) + 1
+
+        # Если серия достигла 5, даём бонус +5 монеток и сбрасываем серию
+        bonus = 0
+        if current_user.win_streak > 0 and current_user.win_streak % 5 == 0:
+            bonus = 50
+            current_user.coin_balance += bonus
+            # Можно не сбрасывать серию, если хотите считать дальше, либо сбросить:
+            # current_user.win_streak = 0
+
         db.session.commit()
+        check_achievements(current_user, game_context)
         session.pop('target_word')
         session.pop('attempts')
-        return jsonify({'result': result, 'message': 'Победа!', 'solved_count': current_user.solved_count})
+        session.pop('guesses')
 
-    # Если не угадал и это последняя попытка — считаем ошибку
+        return jsonify({
+            'result': result,
+            'message': 'Победа!',
+            'solved_count': current_user.solved_count,
+            'coin_balance': current_user.coin_balance,
+            'win_streak': current_user.win_streak,
+            'bonus': bonus
+        })
+
+    # Если не угадал и это последняя попытка — считаем ошибку и сбрасываем серию
     if session['attempts'] >= 6:
-        current_user.total_errors = (current_user.total_errors or 0) + 1
+        current_user.win_streak = 0  # сброс серии при проигрыше
         db.session.commit()
         word = target
         session.pop('target_word')
         session.pop('attempts')
-        return jsonify({'result': result, 'message': f'Игра окончена! Загаданное слово: {word}', 'solved_count': current_user.solved_count})
+        session.pop('guesses')
+        return jsonify({
+        'result': result,
+        'message': f'Игра окончена! Загаданное слово: {word}',
+        'solved_count': current_user.solved_count,
+        'coin_balance': current_user.coin_balance,
+        'win_streak': current_user.win_streak,
+        'correct_word': word })
+    db.session.commit()
+    return jsonify({'result': result, 'attempts_left': 6 - session['attempts'], 'solved_count': current_user.solved_count, 'coin_balance': current_user.coin_balance, 'win_streak': current_user.win_streak})
+
+@app.route('/buy_hint', methods=['POST'])
+@login_required
+def buy_hint():
+    data = request.get_json()
+    hint_type = data.get('hint_type')
+    cost_map = {'letter': 100, 'position': 100, 'word': 1000}
+
+    if hint_type not in cost_map:
+        return jsonify({'error': 'Неверный тип подсказки'}), 400
+
+    cost = cost_map[hint_type]
+    if current_user.coin_balance < cost:
+        return jsonify({'error': 'Недостаточно монет'}), 400
+
+    # Списываем монеты
+    current_user.coin_balance -= cost
+
+    # Получаем подсказку в зависимости от типа
+    target_word = session.get('target_word')
+    if not target_word:
+        return jsonify({'error': 'Игра не активна'}), 400
+
+    hint = None
+    if hint_type == 'letter':
+        # Подсказать случайную букву из слова, которую игрок ещё не угадал
+        guessed_letters = set(''.join(session.get('guesses', [])))
+        remaining_letters = [ch for ch in set(target_word) if ch not in guessed_letters]
+        hint = remaining_letters[0] if remaining_letters else None
+
+    elif hint_type == 'position':
+        # Подсказать букву и её позицию, которую игрок ещё не угадал
+        guessed_positions = set()
+        for guess in session.get('guesses', []):
+            for i, ch in enumerate(guess):
+                if ch == target_word[i]:
+                    guessed_positions.add(i)
+        remaining_positions = [i for i in range(len(target_word)) if i not in guessed_positions]
+        if remaining_positions:
+            pos = remaining_positions[0]
+            hint = {'letter': target_word[pos], 'position': pos}
+        else:
+            hint = None
+
+    elif hint_type == 'word':
+        hint = target_word
 
     db.session.commit()
-    return jsonify({'result': result, 'attempts_left': 6 - session['attempts'], 'solved_count': current_user.solved_count})
+    return jsonify({'hint': hint, 'coin_balance': current_user.coin_balance})
+
+@app.route('/buy_coins', methods=['GET', 'POST'])
+@login_required
+def buy_coins():
+    if request.method == 'POST':
+        amount = int(request.form.get('amount', 0))
+        if amount > 0:
+            # Здесь должна быть интеграция с платежной системой
+            current_user.coin_balance += amount
+            db.session.commit()
+            flash(f'Вы успешно пополнили баланс на {amount} монеток!', 'success')
+            return redirect(url_for('profile'))
+        else:
+            flash('Введите корректное количество монеток', 'error')
+
+    return render_template('buy_coins.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -305,4 +493,5 @@ def edit_password():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        init_achievements()
     app.run(debug=True)

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Пополнение баланса{% endblock %}
+
+{% block body %}
+<div class="page-container">
+  <main class="container" role="main" aria-label="Пополнение баланса">
+    <h1>Пополнение баланса</h1>
+
+    <p>Курс обмена: <strong>1 монетка = 0.1 рубля</strong></p>
+
+    <form method="POST" action="{{ url_for('buy_coins') }}" id="buy-coins-form">
+      <label for="amount">Количество монеток для покупки:</label>
+      <input type="number" id="amount" name="amount" min="1" value="10" required />
+      <p>Стоимость: <span id="cost-rub">1.00</span> руб.</p>
+      <button type="submit" class="btn">Купить</button>
+    </form>
+
+    <p><a href="{{ url_for('profile') }}">← Вернуться в профиль</a></p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+  </main>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const amountInput = document.getElementById('amount');
+    const costRub = document.getElementById('cost-rub');
+    const rate = 0.1; // 0.1 рубля за 1 монетку
+
+    function updateCost() {
+      let amount = parseInt(amountInput.value, 10);
+      if (isNaN(amount) || amount < 1) {
+        amount = 1;
+        amountInput.value = amount;
+      }
+      costRub.textContent = (amount * rate).toFixed(2);
+    }
+
+    amountInput.addEventListener('input', updateCost);
+
+    updateCost();
+  });
+</script>
+{% endblock %}

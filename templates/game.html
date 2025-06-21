@@ -13,19 +13,37 @@
   </aside>
 
   <main class="container game-container" role="main" aria-label="Игра 5 Букв">  
+    <div id="game-message" class="game-message" style="display: none;"></div>
 
     <div id="victory-message" class="victory-message" aria-live="polite" style="display:none;">
     ПОБЕДА!
     </div>
 
+    <div id="game-overlay" class="game-overlay" style="display:none;">
+      <div class="overlay-content">
+        <h1 id="overlay-message"></h1>
+        <p id="overlay-correct-word"></p>
+        <div id="hint-container" style="margin-top: 20px; font-size: 20px; font-weight: 600; color: #fff;"></div>
+        <button id="overlay-close-btn" class="btn-small">Следующее слово</button>
+      </div>
+    </div>
 
+    
     <section id="board" aria-label="Игровое поле"></section>
 
     <section id="keyboard" aria-label="Виртуальная клавиатура"></section>
 
-    <p id="message" role="alert" aria-live="polite"></p>
+
+    <div class="hints-container" style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
+      <button id="hint-letter" class="btn-small">Подсказать букву (100 монет)</button>
+      <button id="hint-position" class="btn-small">Подсказать позицию буквы (100 монет)</button>
+      <button id="hint-word" class="btn-small">Подсказать слово (1000 монет)</button>
+    </div>
+
 
     <button id="submit-btn" type="button" class="btn">Проверить слово</button>
+    <p id="message" role="alert" aria-live="polite"></p>
+    
   </main>
 
   <aside class="leaderboard-container" aria-label="Рейтинг игроков за всё время">

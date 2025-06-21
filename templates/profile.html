@@ -36,6 +36,19 @@
     <input type="file" name="avatar" id="fileElem" accept="image/*" style="display:none" />
     <button type="submit" class="btn" id="upload-btn" disabled>Загрузить</button>
   </form>
+  <h2>Достижения</h2>
+  <ul class="achievements">
+    {% for ach in all_achievements %}
+      <li class="{% if ach.id in user_achievement_ids %}achieved{% endif %}">
+        <strong>{{ ach.name }}</strong> — {{ ach.description }}
+        {% if ach.id in user_achievement_ids %}
+          <span class="date">({{ user_achievement_dates[ach.id].strftime('%d.%m.%Y') }})</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+
   {% endif %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}

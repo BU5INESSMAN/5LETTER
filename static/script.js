@@ -3,8 +3,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const keyboard = document.getElementById('keyboard');
   const message = document.getElementById('message');
   const submitBtn = document.getElementById('submit-btn');
+  const gameContainer = document.querySelector('.game-container');
+  const gameMessage = document.getElementById('game-message');
   let currentRow = 0;
   let currentCell = 0;
+
+  // Инициализация coin_balance из DOM
+  let coin_balance = 0;
+  const balanceElem = document.querySelector('.balance strong');
+  if (balanceElem) {
+    coin_balance = parseInt(balanceElem.textContent, 10) || 0;
+  }
 
   function createBoard() {
     board.innerHTML = '';
@@ -24,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   createBoard();
 
-  // Клавиши — три ряда + backspace справа в третьем ряду
   const firstRowKeys = ['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'];
   const secondRowKeys = ['ф','ы','в','а','п','р','о','л','д','ж','э'];
   const thirdRowKeys = ['я','ч','с','м','и','т','ь','б','ю'];
@@ -37,25 +45,21 @@ document.addEventListener('DOMContentLoaded', () => {
     keyboard.style.gap = '8px';
     keyboard.style.padding = '0 12px';
 
-    // Первый ряд
     firstRowKeys.forEach((char, i) => {
       const keyDiv = createKeyDiv(char, i + 1);
       keyboard.appendChild(keyDiv);
     });
 
-    // Второй ряд
     secondRowKeys.forEach((char, i) => {
       const keyDiv = createKeyDiv(char, i + 13);
       keyboard.appendChild(keyDiv);
     });
 
-    // Третий ряд — буквы
     thirdRowKeys.forEach((char, i) => {
       const keyDiv = createKeyDiv(char, i + 24);
       keyboard.appendChild(keyDiv);
     });
 
-    // Backspace в третьем ряду, сразу после "ю"
     const backspace = createKeyDiv('⌫', 33, true);
     keyboard.appendChild(backspace);
   }
@@ -118,6 +122,85 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+function showGameOverlay(isVictory, correctWord) {
+  const overlay = document.getElementById('game-overlay');
+  const message = document.getElementById('overlay-message');
+  const correctWordElem = document.getElementById('overlay-correct-word');
+  const hintContainer = document.getElementById('hint-container');
+  const overlayBtn = document.getElementById('overlay-close-btn');
+
+  overlay.classList.remove('victory', 'defeat');
+  overlay.style.display = 'flex';
+
+  hintContainer.textContent = '';
+  overlayBtn.style.display = 'none'; // Скрываем кнопку
+
+  if (isVictory) {
+    overlay.classList.add('victory');
+    message.textContent = 'ПОБЕДА!';
+    correctWordElem.textContent = '';
+  } else {
+    overlay.classList.add('defeat');
+    message.textContent = 'ПОРАЖЕНИЕ!';
+    correctWordElem.textContent = `Правильное слово: ${correctWord}`;
+  }
+}
+
+
+
+function showHint(type, hint) {
+  const overlay = document.getElementById('game-overlay');
+  const hintContainer = document.getElementById('hint-container');
+  const message = document.getElementById('overlay-message');
+  const correctWordElem = document.getElementById('overlay-correct-word');
+  const overlayBtn = document.getElementById('overlay-close-btn');
+
+  let hintText = '';
+  if (type === 'letter') {
+    hintText = `Подсказанная буква: ${hint}`;
+  } else if (type === 'position') {
+    hintText = `Подсказанная буква и позиция: ${hint.letter} на позиции ${hint.position + 1}`;
+  } else if (type === 'word') {
+    hintText = `Подсказанное слово: ${hint}`;
+  }
+
+  hintContainer.textContent = hintText;
+  overlay.style.display = 'flex';
+
+  message.textContent = 'Подсказка';
+  correctWordElem.textContent = '';
+
+  overlayBtn.style.display = 'inline-block'; // Показываем кнопку
+  overlayBtn.textContent = 'Закрыть';
+
+  // Удаляем старые обработчики и добавляем новый
+  overlayBtn.replaceWith(overlayBtn.cloneNode(true));
+  const newBtn = document.getElementById('overlay-close-btn');
+  newBtn.addEventListener('click', () => {
+    overlay.style.display = 'none';
+    hintContainer.textContent = '';
+  });
+}
+
+
+
+  function handleCheckResponse(data) {
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    renderGuessResult(data.result);
+
+    if (data.message) {
+      if (data.message.toLowerCase().includes('победа')) {
+        showGameOverlay(true);
+      } else if (data.message.toLowerCase().includes('игра окончена')) {
+        showGameOverlay(false, data.correct_word || '');
+      }
+    }
+  }
+
   function resetGame() {
     createBoard();
     createKeyboard();
@@ -125,6 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = false;
     currentRow = 0;
     currentCell = 0;
+    const overlay = document.getElementById('game-overlay');
+    overlay.style.display = 'none';
     fetch('/new_word', { method: 'POST' })
       .catch(() => {
         message.textContent = 'Ошибка при обновлении слова на сервере';
@@ -169,19 +254,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Обновляем цвет ячеек игрового поля
       rowCells.forEach((cell, i) => {
         cell.classList.remove('green', 'yellow', 'gray');
         cell.classList.add(data.result[i]);
       });
 
-      // Обновляем подсветку клавиш
       updateKeyboardColors(guess, data.result);
 
       const solvedCountElem = document.getElementById('solved-count');
       if (solvedCountElem && data.solved_count !== undefined) {
         solvedCountElem.textContent = data.solved_count;
       }
+
+      if (data.coin_balance !== undefined) {
+        coin_balance = data.coin_balance;
+        updateBalanceDisplay(coin_balance);
+      }
+
+      handleCheckResponse(data);
 
       if (data.message) {
         message.textContent = data.message;
@@ -193,29 +283,20 @@ document.addEventListener('DOMContentLoaded', () => {
       currentRow++;
       currentCell = 0;
     } catch (e) {
+      console.error('Fetch error:', e);
       message.textContent = 'Ошибка соединения с сервером';
     }
-    
   }
-  
 
-  /**
-   * Обновляет цвета клавиш виртуальной клавиатуры в зависимости от результата
-   * @param {string} guess - введённое слово
-   * @param {Array} result - массив из 'green', 'yellow', 'gray' для каждой буквы
-   */
   function updateKeyboardColors(guess, result) {
     for (let i = 0; i < guess.length; i++) {
       const letter = guess[i];
-      // Найдём все клавиши с этой буквой (буква может встречаться несколько раз)
       const keys = Array.from(keyboard.querySelectorAll('.key.standard'))
         .filter(k => k.textContent.toLowerCase() === letter);
 
       keys.forEach(key => {
-        // Текущий цвет клавиши
         const currentColor = getKeyColor(key);
 
-        // Приоритет цветов: green > yellow > gray > none
         if (result[i] === 'green') {
           setKeyColor(key, 'green');
         } else if (result[i] === 'yellow') {
@@ -225,7 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (result[i] === 'gray') {
           if (currentColor !== 'green' && currentColor !== 'yellow') {
             setKeyColor(key, 'gray');
-            // Делаем кнопку неактивной и убираем обработчик клика
             key.style.pointerEvents = 'none';
             key.style.opacity = '0.5';
           }
@@ -234,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /** Получить текущий цвет кнопки */
   function getKeyColor(key) {
     if (key.classList.contains('green')) return 'green';
     if (key.classList.contains('yellow')) return 'yellow';
@@ -242,17 +321,81 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  /** Установить цвет кнопки */
   function setKeyColor(key, color) {
     key.classList.remove('green', 'yellow', 'gray');
     key.classList.add(color);
-    // Восстанавливаем активность для green и yellow
     if (color === 'green' || color === 'yellow') {
       key.style.pointerEvents = 'auto';
       key.style.opacity = '1';
     }
   }
 
-  // Инициализация кнопки
+  function renderGuessResult(result) {
+    const rowCells = document.querySelectorAll(`.row:nth-child(${currentRow + 1}) .cell`);
+    rowCells.forEach((cell, i) => {
+      cell.classList.remove('green', 'yellow', 'gray');
+      cell.classList.add(result[i]);
+    });
+  }
+
+  function updateBalanceDisplay(balance) {
+    const balanceElem = document.querySelector('.balance strong');
+    if (balanceElem) balanceElem.textContent = balance;
+  }
+
+  // Подсказки
+  document.getElementById('hint-letter').addEventListener('click', () => buyHint('letter', 100));
+  document.getElementById('hint-position').addEventListener('click', () => buyHint('position', 100));
+  document.getElementById('hint-word').addEventListener('click', () => buyHint('word', 1000));
+
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.querySelector('.nav-toggle');
+  const navList = document.querySelector('.nav-list');
+
+  if (!toggle || !navList) return;
+
+  toggle.addEventListener('click', () => {
+    toggle.classList.toggle('open');
+    navList.classList.toggle('open');
+  });
+
+  navList.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      toggle.classList.remove('open');
+      navList.classList.remove('open');
+    });
+  });
+});
+
+
+  async function buyHint(type, cost) {
+    if (coin_balance < cost) {
+      alert('Недостаточно монет для подсказки');
+      return;
+    }
+
+    try {
+      const response = await fetch('/buy_hint', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({hint_type: type})
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Ошибка при покупке подсказки');
+        return;
+      }
+
+      coin_balance = data.coin_balance;
+      updateBalanceDisplay(coin_balance);
+
+      showHint(type, data.hint);
+
+    } catch (e) {
+      alert('Ошибка соединения с сервером');
+    }
+  }
+
   switchSubmitButton(false);
 });

@@ -7,27 +7,68 @@
   {% block head %}{% endblock %}
 </head>
 <body>
-  <header class="site-header">
-    <nav class="nav-container" role="navigation" aria-label="Главное меню">
-      <ul class="nav-list">
-        <li><a href="{{ url_for('home') }}">Играть</a></li>
-        <li><a href="{{ url_for('statistics') }}">Статистика</a></li>
-        <li class="nav-logo">
-          <img src="{{ url_for('static', filename='logo.png') }}" alt="Логотип 5 Букв" />
-        </li>
-        {% if current_user.is_authenticated %}
-          <li><a href="{{ url_for('profile') }}">Профиль</a></li>
-          <li><a href="{{ url_for('logout') }}">Выход</a></li>
-        {% else %}
-          <li><a href="{{ url_for('login') }}">Войти</a></li>
-          <li><a href="{{ url_for('register') }}">Регистрация</a></li>
-        {% endif %}
-      </ul>
-    </nav>
-  </header>
+<header class="site-header">
+<nav class="nav-container" role="navigation" aria-label="Главное меню">
+  <div style="width: 200px;">
+    <div class="nav-logo" style="text-decoration: none;">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Логотип 5 Букв" />
+    </div>
+  </div>
 
+  <button class="nav-toggle" aria-label="Открыть меню" aria-expanded="false" aria-controls="primary-navigation">
+    <span></span>
+  </button>
+
+  <ul id="primary-navigation" class="nav-list">
+    <li><a href="{{ url_for('home') }}">Играть</a></li>
+    <li><a href="{{ url_for('statistics') }}">Статистика</a></li>
+    {% if current_user.is_authenticated %}
+      <li><a href="{{ url_for('profile') }}">Профиль</a></li>
+      <li><a href="{{ url_for('logout') }}">Выход</a></li>
+    {% else %}
+      <li><a href="{{ url_for('register') }}">Регистрация</a></li>
+      <li><a href="{{ url_for('login') }}">Войти</a></li>
+    {% endif %}
+  </ul>
+
+  <div class="balance">
+    {% if coin_balance is not none %}
+      <img src="{{ url_for('static', filename='coin.png') }}" alt="Монетки" />
+      <strong>{{ coin_balance }}</strong>
+      <a href="{{ url_for('buy_coins') }}" class="btn btn-small">Пополнить</a>
+    {% endif %}
+  </div>
+</nav>
+
+</header>
   {% block body %}{% endblock %}
 
   {% block scripts %}{% endblock %}
 </body>
 </html>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.querySelector('.nav-toggle');
+  const navList = document.querySelector('.nav-list');
+
+  if (!toggle || !navList) return;
+
+  toggle.addEventListener('click', () => {
+    toggle.classList.toggle('open');
+    navList.classList.toggle('open');
+
+    const expanded = toggle.classList.contains('open');
+    toggle.setAttribute('aria-expanded', expanded);
+  });
+
+  navList.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      toggle.classList.remove('open');
+      navList.classList.remove('open');
+      toggle.setAttribute('aria-expanded', false);
+    });
+  });
+});
+</script>
+
